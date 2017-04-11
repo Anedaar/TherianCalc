@@ -1,0 +1,322 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+
+<body id="body" onload="load()">
+
+<script type="text/javascript">
+
+var XMLData;
+
+function load ()
+{
+	var oReq = new XMLHttpRequest();
+
+	oReq.addEventListener("load", transferComplete);
+	oReq.addEventListener("error", transferFailed);
+	oReq.addEventListener("abort", transferCanceled);
+
+	oReq.open("GET", "GameData.xml");
+	setTimeout(function(){oReq.send();}, 100);
+}
+
+/*************************************************************
+****************** Transfer listeners ************************
+**************************************************************/
+
+function transferFailed(evt) {
+  document.write("An error occurred while transferring the file.");
+}
+
+function transferCanceled(evt) {
+  document.write("The transfer has been canceled by the user.");
+}
+	
+function transferComplete(evt) {
+	console.info("The transfer is complete.");
+  
+	var xmlDoc = this.responseXML
+	var xml = xmlDoc.childNodes[0]; //<context>
+  
+	XML.removeEmptyTextNodes(xml);
+	XMLData = XML.handle(xml);
+	//Image.loadXML(xml);
+	//ItemBase.loadXML(xml);
+	
+	//collectUnhandled(xml);
+	
+	//document.write(JSON.stringify(XMLData));
+	
+	var keys = Object.keys(XMLData.itemBaseSet);
+	var randomKey = keys[Math.floor(keys.length * Math.random())];
+	document.write(JSON.stringify(XMLData.itemBaseSet[randomKey])+"<br>");
+	document.write(ItemBase.getInfo(randomKey));
+	
+	//printUnhandled();	
+	XML.printUnhandled();
+}
+	
+/*************************************************************
+****************** XML helper ********************************
+**************************************************************/
+
+var XML = {};
+
+XML.removeEmptyTextNodes = function(node){
+	for(var n = node.childNodes.length-1; n>=0; n--){
+		if(node.childNodes[n].nodeType != Node.TEXT_NODE || node.childNodes[n].nodeValue.match(/[^\s]/)){
+			XML.removeEmptyTextNodes(node.childNodes[n]);
+		}
+		else{
+			node.removeChild(node.childNodes[n]);
+		}
+	}
+}
+
+//returns the attribute value and removes the attribute
+XML.popAttribute = function (node, attr){
+	var ret = node.getAttribute(attr);
+	node.removeAttribute(attr);
+	return ret;
+}
+
+//returns a child node with this tagName and removes it from the parent node
+XML.popNode = function (node, tagName){
+	var child = node.getElementsByTagName(tagName)[0];
+	node.removeChild(child);
+	return child;
+}
+
+var unhandledAttributes = [];
+
+function collectUnhandledAttributes(node){
+	unhandledAttributes[node.nodeName] = [];
+	for (var att of node.attributes){
+		unhandledAttributes[node.nodeName][att.nodeName]=true;
+	}
+}
+
+function printUnhandledAttributes(){
+	for (var type in unhandledAttributes){
+		for (var att in unhandledAttributes[type])
+			document.write("Unhandled attribute &#60"+att+"&#62 in node &#60" + type+"&#62.<br>");
+	}
+}
+
+var unhandledChilds = [];
+
+function collectUnhandledChilds(node){
+	unhandledChilds[node.nodeName] = [];
+	for (var child of node.childNodes){
+		if(child.nodeType!=3){
+		unhandledChilds[node.nodeName][child.nodeName]=true;
+		}
+	}
+}
+
+function printUnhandledChilds(){
+	for (var type in unhandledChilds){
+		for (var child in unhandledChilds[type])
+			document.write("Unhandled child &#60"+child+"&#62 in node &#60" + type+"&#62.<br>");
+	}
+}
+
+function collectUnhandled(node){
+	collectUnhandledAttributes(node);
+	collectUnhandledChilds(node);
+}
+
+function printUnhandled(){
+	printUnhandledAttributes();
+	printUnhandledChilds();
+}
+/*************************************************************
+****************** XML Handler *******************************
+**************************************************************/
+XML.handler = [];
+XML.unhandledNodes = [];
+
+XML.handle = function(node){
+	if(XML.handler[node.nodeName])
+		return XML.handler[node.nodeName](node);
+	else
+		XML.unhandledNodes[node.nodeName]=true;
+}
+
+XML.getAttributes = function(node){
+	var obj={};
+	for (var att of node.attributes){
+		obj[att.nodeName] = node.getAttribute(att.nodeName);
+	}
+	
+	
+	return obj;
+}
+
+XML.printUnhandled = function(){
+	for (var node in XML.unhandledNodes)
+		document.write("Unhandled node &#60"+node+"&#62.<br>");
+}
+
+ //--------Sets -------------
+ 
+XML.nodeSetHandler = function(node){
+	var atts=XML.getAttributes(node); 
+	
+	var elem, set={};
+	for (var child of node.childNodes){
+		elem = XML.handle(child);
+		if(elem && elem.id)
+			set[elem.id]=elem;
+	}
+	if (atts.count && atts.count != Object.keys(set).length) 
+		document.write("Loaded &#60"+node.nodeName+"&#62: Found " + (Object.keys(set).length) + ", expected: " + atts.count);
+	return set;
+}
+
+XML.handler.imageSet = XML.nodeSetHandler;
+XML.handler.itemBaseSet = XML.nodeSetHandler;
+XML.handler.resourceOfRegions = XML.nodeSetHandler;
+XML.handler.skills = XML.nodeSetHandler;
+XML.handler.usedInRecipeIngredients = XML.nodeSetHandler;
+XML.handler.itemBaseSkillSet = XML.nodeSetHandler;
+XML.handler.itemTypeSet = XML.nodeSetHandler;
+XML.handler.dungeonSet = XML.nodeSetHandler;
+XML.handler.siteSet = XML.nodeSetHandler;
+XML.handler.skillSet = XML.nodeSetHandler;
+XML.handler.storeSet = XML.nodeSetHandler;
+XML.handler.recipeSet = XML.nodeSetHandler;
+XML.handler.taskGroupSet = XML.nodeSetHandler;
+XML.handler.taskSet = XML.nodeSetHandler;
+XML.handler.recipeIngredientSet = XML.nodeSetHandler;
+XML.handler.unitTypeSet = XML.nodeSetHandler;
+XML.handler.unitBaseSet = XML.nodeSetHandler;
+XML.handler.territorySet = XML.nodeSetHandler;
+XML.handler.regionSet = XML.nodeSetHandler;
+XML.handler.areaWildlifeSet = XML.nodeSetHandler;
+XML.handler.areaResourceSet = XML.nodeSetHandler;
+XML.handler.landformSet = XML.nodeSetHandler;
+XML.handler.unitBaseSkillSet = XML.nodeSetHandler;
+XML.handler.storeSet = XML.nodeSetHandler;
+XML.handler.residentSet = XML.nodeSetHandler;
+XML.handler.zoneSet = XML.nodeSetHandler;
+XML.handler.unitBases = XML.nodeSetHandler;
+XML.handler.itemBases = XML.nodeSetHandler;
+XML.handler.regions = XML.nodeSetHandler;
+XML.handler.zones = XML.nodeSetHandler;
+XML.handler.stores = XML.nodeSetHandler;
+XML.handler.ingredients = XML.nodeSetHandler;
+XML.handler.wildlifes = XML.nodeSetHandler;
+XML.handler.resources = XML.nodeSetHandler;
+XML.handler.usedInRecipes = XML.nodeSetHandler;
+XML.handler.subItemTypes = XML.nodeSetHandler;
+XML.handler.soldInStores = XML.nodeSetHandler;
+XML.handler.residents = XML.nodeSetHandler;
+XML.handler.tasks = XML.nodeSetHandler;
+XML.handler.useInTasks = XML.nodeSetHandler;
+XML.handler.sellItemBases = XML.nodeSetHandler;
+XML.handler.usedByItemTypes = XML.nodeSetHandler;
+XML.handler.usedByUnitBaseSkills = XML.nodeSetHandler;
+XML.handler.usedByItemBaseSkills = XML.nodeSetHandler;
+XML.handler.subSkills = XML.nodeSetHandler;
+XML.handler.taskGroups = XML.nodeSetHandler;
+
+//-------- Data-Nodes ----------
+
+XML.dataNodeHandler = function(node){
+	var obj=XML.getAttributes(node);
+	for (var child of node.childNodes){
+		obj[child.nodeName]=XML.handle(child);
+	}
+	return obj;
+}
+
+
+XML.handler.context = XML.dataNodeHandler;
+XML.handler.image = XML.dataNodeHandler;
+XML.handler.itemBase = XML.dataNodeHandler;
+XML.handler.link = XML.dataNodeHandler;
+XML.handler.itemBaseSkill = XML.dataNodeHandler;
+XML.handler.dungeon = XML.dataNodeHandler;
+XML.handler.itemType = XML.dataNodeHandler;
+XML.handler.site = XML.dataNodeHandler;
+XML.handler.task = XML.dataNodeHandler;
+XML.handler.recipe = XML.dataNodeHandler;
+XML.handler.taskGroup = XML.dataNodeHandler;
+XML.handler.recipeIngredient = XML.dataNodeHandler;
+XML.handler.unitType = XML.dataNodeHandler;
+XML.handler.unitBase = XML.dataNodeHandler;
+XML.handler.territory = XML.dataNodeHandler;
+XML.handler.region = XML.dataNodeHandler;
+XML.handler.areaWildlife = XML.dataNodeHandler;
+XML.handler.areaResource = XML.dataNodeHandler;
+XML.handler.landform = XML.dataNodeHandler;
+XML.handler.unitBaseSkill = XML.dataNodeHandler;
+XML.handler.store = XML.dataNodeHandler;
+XML.handler.resident = XML.dataNodeHandler;
+XML.handler.zone = XML.dataNodeHandler;
+XML.handler.skill = XML.dataNodeHandler;
+
+
+// ---------- special ----------
+
+XML.handler.name = function(node){
+	var name = {};
+	for (var child of node.childNodes){
+		name[child.getAttribute("c")] = child.childNodes[0].nodeValue;
+	}
+	return name;
+}
+
+XML.handler.description = XML.handler.name;
+XML.handler.introduction = XML.handler.name;
+
+/*************************************************************
+****************** Image ********************************
+**************************************************************/
+
+Image.get = function (id){
+	return XMLData.imageSet[id].path;
+}
+
+Image.getUrl = function (id){
+	return "http://statics.theriansaga.com/gameassets/Images/" + Image.get(id);
+}
+
+
+/*************************************************************
+****************** ItemBase ********************************
+**************************************************************/
+class ItemBase{	
+	static get(id){
+		return XMLData.itemBaseSet[id];
+	}
+	static getInfo(id){
+		var item = this.get(id);
+		return "ID: "+item.id+"<br>"+
+			"itemTypeId: "+item.itemTypeId+"<br>" +
+			"<img src='" + Image.getUrl(item.iconId) + "'>";
+	}
+}
+/*<itemBase itemTypeId="fbd2fe5e-b4b6-e211-be8c-782bcb902040" iconId="48a80657-4d13-4728-9b3e-1838d8d05dbe" craftingTaskId="ea594914-ceea-11e2-b2e9-6c626d3d1b6d" id="9f691156-cedf-11e2-81ac-e0cb4e3216af" isHidden="1">
+      <soldInStores />
+      <resourceOfRegions />
+      <skills />
+      <usedInRecipeIngredients />
+      <usedInRecipes />
+      <name>
+        <text c="fr">Bras de la statue</text>
+        <text c="en">Statue's Arms</text>
+        <text c="ru">Руки статуи</text>
+        <text c="de">Arme der Statue</text>
+        <text c="it">Braccia della statua</text>
+        <text c="pl">Ramiona statuty</text>
+        <text c="tr">Heykelin Kolları</text>
+        <text c="es">Brazos de la estatua</text>
+      </name>
+    </itemBase>*/
+</script>
+</body>
+</html> 
+
